@@ -2503,8 +2503,10 @@ name = "node-template"
 version = "2.0.0-alpha.7"
 dependencies = [
  "futures 0.3.4",
+ "jsonrpc-core",
  "log",
  "node-template-runtime",
+ "pallet-contracts-rpc",
  "sc-basic-authorship",
  "sc-cli",
  "sc-client-api",
@@ -2513,6 +2515,7 @@ dependencies = [
  "sc-executor",
  "sc-finality-grandpa",
  "sc-network",
+ "sc-rpc",
  "sc-service",
  "sc-transaction-pool",
  "sp-consensus",
@@ -2770,6 +2773,25 @@ dependencies = [
  "parity-scale-codec",
  "sp-runtime",
  "sp-std 2.0.0-alpha.7",
+]
+
+[[package]]
+name = "pallet-contracts-rpc"
+version = "0.8.0-alpha.7"
+source = "git+https://github.com/paritytech/substrate.git?tag=v2.0.0-alpha.7#83a6f1add7957160283ac5d7e627da06beb725d9"
+dependencies = [
+ "jsonrpc-core",
+ "jsonrpc-core-client",
+ "jsonrpc-derive",
+ "pallet-contracts-primitives",
+ "pallet-contracts-rpc-runtime-api",
+ "parity-scale-codec",
+ "serde",
+ "sp-api",
+ "sp-blockchain",
+ "sp-core",
+ "sp-rpc",
+ "sp-runtime",
 ]
 
 [[package]]
