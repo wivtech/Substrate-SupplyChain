@@ -10,6 +10,18 @@ default-features = false
 package = 'pallet-balances'
 tag = 'v2.0.0-alpha.7'
 
+[dependencies.contracts]
+git = 'https://github.com/paritytech/substrate.git'
+default-features = false
+package = 'pallet-contracts'
+tag = 'v2.0.0-alpha.7'
+
+[dependencies.contracts-primitives]
+git = 'https://github.com/paritytech/substrate.git'
+default-features = false
+package = 'pallet-contracts-primitives'
+tag = 'v2.0.0-alpha.7'
+
 [dependencies.codec]
 default-features = false
 features = ['derive']
@@ -162,6 +174,8 @@ default = ['std']
 std = [
     'aura/std',
     'balances/std',
+    'contracts/std',
+    'contracts-primitives/std',
     'codec/std',
     'frame-executive/std',
     'frame-support/std',
