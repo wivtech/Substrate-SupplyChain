@@ -22,6 +22,13 @@ default-features = false
 package = 'pallet-contracts-primitives'
 tag = 'v2.0.0-alpha.7'
 
+[dependencies.contracts-rpc-runtime-api]
+git = 'https://github.com/paritytech/substrate.git'
+default-features = false
+package = 'pallet-contracts-rpc-runtime-api'
+version = '0.8.0-alpha.7'
+tag = 'v2.0.0-alpha.7'
+
 [dependencies.codec]
 default-features = false
 features = ['derive']
@@ -176,6 +183,7 @@ std = [
     'balances/std',
     'contracts/std',
     'contracts-primitives/std',
+    'contracts-rpc-runtime-api/std',
     'codec/std',
     'frame-executive/std',
     'frame-support/std',

@@ -2537,6 +2537,7 @@ dependencies = [
  "pallet-balances",
  "pallet-contracts",
  "pallet-contracts-primitives",
+ "pallet-contracts-rpc-runtime-api",
  "pallet-grandpa",
  "pallet-randomness-collective-flip",
  "pallet-sudo",
@@ -2767,6 +2768,18 @@ version = "2.0.0-alpha.7"
 source = "git+https://github.com/paritytech/substrate.git?tag=v2.0.0-alpha.7#83a6f1add7957160283ac5d7e627da06beb725d9"
 dependencies = [
  "parity-scale-codec",
+ "sp-runtime",
+ "sp-std 2.0.0-alpha.7",
+]
+
+[[package]]
+name = "pallet-contracts-rpc-runtime-api"
+version = "0.8.0-alpha.7"
+source = "git+https://github.com/paritytech/substrate.git?tag=v2.0.0-alpha.7#83a6f1add7957160283ac5d7e627da06beb725d9"
+dependencies = [
+ "pallet-contracts-primitives",
+ "parity-scale-codec",
+ "sp-api",
  "sp-runtime",
  "sp-std 2.0.0-alpha.7",
 ]
