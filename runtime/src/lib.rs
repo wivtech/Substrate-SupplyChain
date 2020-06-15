@@ -30,6 +30,8 @@ use sp_version::NativeVersion;
 pub use sp_runtime::BuildStorage;
 pub use timestamp::Call as TimestampCall;
 pub use balances::Call as BalancesCall;
+// Importing the contracts Schedule Type
+pub use contracts::Schedule as ContractsSchedule;
 pub use sp_runtime::{Permill, Perbill};
 pub use frame_support::{
 	StorageValue, construct_runtime, parameter_types,
@@ -115,6 +117,12 @@ pub const SLOT_DURATION: u64 = MILLISECS_PER_BLOCK;
 pub const MINUTES: BlockNumber = 60_000 / (MILLISECS_PER_BLOCK as BlockNumber);
 pub const HOURS: BlockNumber = MINUTES * 60;
 pub const DAYS: BlockNumber = HOURS * 24;
+
+// Contracts price units.
+pub const MILLICENTS: Balance = 1_000_000_000;
+pub const CENTS: Balance = 1_000 * MILLICENTS;
+pub const DOLLARS: Balance = 100 * CENTS;
+/*** End Added Block ***/
 
 /// The version information used to identify this runtime when compiled natively.
 #[cfg(feature = "std")]
@@ -205,6 +213,31 @@ impl timestamp::Trait for Runtime {
 }
 
 parameter_types! {
+    pub const TombstoneDeposit: Balance = 1 * DOLLARS;
+    pub const RentByteFee: Balance = 1 * DOLLARS;
+    pub const RentDepositOffset: Balance = 1000 * DOLLARS;
+    pub const SurchargeReward: Balance = 150 * DOLLARS;
+}
+
+impl contracts::Trait for Runtime {
+    type Time = Timestamp;
+    type Randomness = RandomnessCollectiveFlip;
+    type Call = Call;
+    type Event = Event;
+    type DetermineContractAddress = contracts::SimpleAddressDeterminer<Runtime>;
+    type TrieIdGenerator = contracts::TrieIdFromParentCounter<Runtime>;
+    type RentPayment = ();
+    type SignedClaimHandicap = contracts::DefaultSignedClaimHandicap;
+    type TombstoneDeposit = TombstoneDeposit;
+    type StorageSizeOffset = contracts::DefaultStorageSizeOffset;
+    type RentByteFee = RentByteFee;
+    type RentDepositOffset = RentDepositOffset;
+    type SurchargeReward = SurchargeReward;
+    type MaxDepth = contracts::DefaultMaxDepth;
+    type MaxValueSize = contracts::DefaultMaxValueSize;
+}
+
+parameter_types! {
 	pub const ExistentialDeposit: u128 = 500;
 }
 
@@ -257,6 +290,7 @@ construct_runtime!(
 		Aura: aura::{Module, Config<T>, Inherent(Timestamp)},
 		Grandpa: grandpa::{Module, Call, Storage, Config, Event},
 		Balances: balances::{Module, Call, Storage, Config<T>, Event<T>},
+		Contracts: contracts::{Module, Call, Config, Storage, Event<T>},
 		TransactionPayment: transaction_payment::{Module, Storage},
 		Sudo: sudo::{Module, Call, Config<T>, Storage, Event<T>},
 		// Used for the module template in `./template.rs`
