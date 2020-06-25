@@ -24,7 +24,7 @@ cargo build --release
 
 ## Run
 
-### Single Node Development Chain
+### Single node development chain
 
 Purge any existing developer chain state:
 
@@ -40,7 +40,7 @@ Start a development chain with:
 
 Detailed logs may be shown by running the node with the following environment variables set: `RUST_LOG=debug RUST_BACKTRACE=1 cargo run -- --dev`.
 
-### Multi-Node Local Testnet
+### Multi-node local testnet
 
 If you want to see the multi-node consensus algorithm in action locally, then you can create a local testnet with two validator nodes for Alice and Bob, who are the initial authorities of the genesis chain that have been endowed with testnet units.
 
@@ -74,52 +74,3 @@ cargo run -- \
 ```
 
 Additional CLI usage options are available and may be shown by running `cargo run -- --help`.
-
-### Run in Docker
-
-First, install [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/).
-
-Then run the following command to start a single node development chain.
-
-```bash
-./scripts/docker_run.sh
-```
-
-This command will firstly compile your code, and then start a local development network. You can also replace the default command (`cargo build --release && ./target/release/node-template --dev --ws-external`) by appending your own. A few useful ones are as follow.
-
-```bash
-# Run Substrate node without re-compiling
-./scripts/docker_run.sh ./target/release/node-template --dev --ws-external
-
-# Purge the local dev chain
-./scripts/docker_run.sh ./target/release/node-template purge-chain --dev
-
-# Check whether the code is compilable
-./scripts/docker_run.sh cargo check
-```
-
-## Advanced: Generate Your Own Substrate Node Template
-
-A substrate node template is always based on a certain version of Substrate. You can inspect it by
-opening [Cargo.toml](Cargo.toml) and see the template referred to a specific Substrate commit(
-`rev` field), branch, or version.
-
-You can generate your own Substrate node-template based on a particular Substrate
-version/commit by running following commands:
-
-```bash
-# git clone from the main Substrate repo
-git clone https://github.com/paritytech/substrate.git
-cd substrate
-
-# Switch to a particular branch or commit of the Substrate repo your node-template based on
-git checkout <branch/tag/sha1>
-
-# Run the helper script to generate a node template.
-# This script compiles Substrate and takes a while to complete. It takes a relative file path
-#   from the current dir. to output the compressed node template.
-.maintain/node-template-release.sh ../node-template.tar.gz
-```
-
-Noted though you will likely get faster and more thorough support if you stick with the releases
-provided in this repository.

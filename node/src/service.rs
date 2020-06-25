@@ -27,9 +27,9 @@ native_executor_instance!(
 /// be able to perform chain operations.
 macro_rules! new_full_start {
 	($config:expr) => {{
+		use jsonrpc_core::IoHandler;
 		use std::sync::Arc;
 		use sp_consensus_aura::sr25519::AuthorityPair as AuraPair;
-		use jsonrpc_core::IoHandler;
 
 		let mut import_setup = None;
 		let inherent_data_providers = sp_inherents::InherentDataProviders::new();
@@ -89,13 +89,13 @@ macro_rules! new_full_start {
 				Ok(import_queue)
 			})?
 			.with_rpc_extensions(|builder| -> Result<IoHandler<sc_rpc::Metadata>, _> {
-                let handler = pallet_contracts_rpc::Contracts::new(builder.client().clone());
-                let delegate = pallet_contracts_rpc::ContractsApi::to_delegate(handler);
+				let handler = pallet_contracts_rpc::Contracts::new(builder.client().clone());
+				let delegate = pallet_contracts_rpc::ContractsApi::to_delegate(handler);
 
-                let mut io = IoHandler::default();
-                io.extend_with(delegate);
-                Ok(io)
-            })?;
+				let mut io = IoHandler::default();
+				io.extend_with(delegate);
+				Ok(io)
+		})?;
 
 		(builder, import_setup, inherent_data_providers)
 	}}
@@ -120,7 +120,7 @@ pub fn new_full(config: Configuration) -> Result<impl AbstractService, ServiceEr
 			let provider = client as Arc<dyn StorageAndProofProvider<_, _>>;
 			Ok(Arc::new(GrandpaFinalityProofProvider::new(backend, provider)) as _)
 		})?
-		.build()?;
+		.build_full()?;
 
 	if role.is_authority() {
 		let proposer = sc_basic_authorship::ProposerFactory::new(
@@ -151,13 +151,13 @@ pub fn new_full(config: Configuration) -> Result<impl AbstractService, ServiceEr
 
 		// the AURA authoring task is considered essential, i.e. if it
 		// fails we take down the service with it.
-		service.spawn_essential_task("aura", aura);
+		service.spawn_essential_task_handle().spawn_blocking("aura", aura);
 	}
 
 	// if the node isn't actively participating in consensus then it doesn't
 	// need a keystore, regardless of which protocol we use below.
 	let keystore = if role.is_authority() {
-		Some(service.keystore())
+		Some(service.keystore() as sp_core::traits::BareCryptoStorePtr)
 	} else {
 		None
 	};
@@ -193,7 +193,7 @@ pub fn new_full(config: Configuration) -> Result<impl AbstractService, ServiceEr
 
 		// the GRANDPA voter task is considered infallible, i.e.
 		// if it fails we take down the service with it.
-		service.spawn_essential_task(
+		service.spawn_essential_task_handle().spawn_blocking(
 			"grandpa-voter",
 			sc_finality_grandpa::run_grandpa_voter(grandpa_config)?
 		);
@@ -273,5 +273,5 @@ pub fn new_light(config: Configuration) -> Result<impl AbstractService, ServiceE
 			let provider = client as Arc<dyn StorageAndProofProvider<_, _>>;
 			Ok(Arc::new(GrandpaFinalityProofProvider::new(backend, provider)) as _)
 		})?
-		.build()
+		.build_light()
 }
