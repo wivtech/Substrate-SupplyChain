@@ -1,7 +1,8 @@
 use sp_core::{Pair, Public, sr25519};
 use node_template_runtime::{
-	AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig, ContractsConfig, ContractsSchedule,
-	SudoConfig, SystemConfig, WASM_BINARY, Signature
+	AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig,
+	SudoConfig, SystemConfig, WASM_BINARY, Signature,
+	ContractsConfig, ContractsSchedule
 };
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_finality_grandpa::AuthorityId as GrandpaId;
@@ -121,10 +122,10 @@ fn testnet_genesis(initial_authorities: Vec<(AuraId, GrandpaId)>,
 			key: root_key,
 		}),
 		contracts: Some(ContractsConfig {
-			current_schedule: ContractsSchedule {
-							enable_println,
-							..Default::default()
-			},
-		}),
+            current_schedule: ContractsSchedule {
+                    enable_println,
+                    ..Default::default()
+            },
+        }),
 	}
 }
