@@ -16,9 +16,9 @@ mod erc721 {
     #[ink(storage)]
     struct Erc721 {
         /// Mapping from token to owner.
-        token_owner: storage::HashMap<TokenId, AccountId>,
+        token_owner: storage::HashMap<u32, AccountId>,        // u32 - TokenId
         /// Mapping from token to approvals users.
-        token_approvals: storage::HashMap<TokenId, AccountId>,
+        token_approvals: storage::HashMap<u32, AccountId>,         // u32 - TokenId
         /// Mapping from owner to number of owned token.
         owned_tokens_count: storage::HashMap<AccountId, u32>,
         /// Mapping from owner to operator approvals.
@@ -46,7 +46,7 @@ mod erc721 {
         #[ink(topic)]
         to: Option<AccountId>,
         #[ink(topic)]
-        id: TokenId,
+        id: u32, // u32 - TokenId
     }
 
     /// Event emited when a token approve occurs.
@@ -57,7 +57,7 @@ mod erc721 {
         #[ink(topic)]
         to: AccountId,
         #[ink(topic)]
-        id: TokenId,
+        id: u32,        // u32 - TokenId
     }
 
     /// Event emitted when an operator is enabled or disabled for an owner.
@@ -86,13 +86,13 @@ mod erc721 {
 
         /// Returns the owner of the token.
         #[ink(message)]
-        fn owner_of(&self, id: TokenId) -> Option<AccountId> {
+        fn owner_of(&self, id: u32) -> Option<AccountId> {         // u32 - TokenId
             self.token_owner.get(&id).cloned()
         }
 
         /// Returns the approved account ID for this token if any.
         #[ink(message)]
-        fn get_approved(&self, id: TokenId) -> Option<AccountId> {
+        fn get_approved(&self, id: u32) -> Option<AccountId> {         // u32 - TokenId
             self.token_approvals.get(&id).cloned()
         }
 
@@ -115,14 +115,14 @@ mod erc721 {
 
         /// Approves the account to transfer the specified token on behalf of the caller.
         #[ink(message)]
-        fn approve(&mut self, to: AccountId, id: TokenId) -> Result<(), Error> {
+        fn approve(&mut self, to: AccountId, id: u32) -> Result<(), Error> {         // u32 - TokenId
             self.approve_for(&to, id)?;
             Ok(())
         }
 
         /// Transfers the token from the caller to the given destination.
         #[ink(message)]
-        fn transfer(&mut self, destination: AccountId, id: TokenId) -> Result<(), Error> {
+        fn transfer(&mut self, destination: AccountId, id: u32) -> Result<(), Error> {         // u32 - TokenId
             let caller = self.env().caller();
             self.transfer_token_from(&caller, &destination, id)?;
             Ok(())
@@ -134,7 +134,7 @@ mod erc721 {
             &mut self,
             from: AccountId,
             to: AccountId,
-            id: TokenId,
+            id: u32,         // u32 - TokenId
         ) -> Result<(), Error> {
             self.transfer_token_from(&from, &to, id)?;
             Ok(())
@@ -142,7 +142,7 @@ mod erc721 {
 
         /// Creates a new token.
         #[ink(message)]
-        fn mint(&mut self, id: TokenId) -> Result<(), Error> {
+        fn mint(&mut self, id: u32) -> Result<(), Error> {         // u32 - TokenId
             let caller = self.env().caller();
             self.add_token_to(&caller, id)?;
             self.env().emit_event(Transfer {
@@ -155,7 +155,7 @@ mod erc721 {
 
         /// Deletes an existing token. Only the owner can burn the token.
         #[ink(message)]
-        fn burn(&mut self, id: TokenId) -> Result<(), Error> {
+        fn burn(&mut self, id: u32) -> Result<(), Error> {         // u32 - TokenId
             let caller = self.env().caller();
             if self.token_owner.get(&id) != Some(&caller) {
                 return Err(Error::NotOwner)
@@ -174,7 +174,7 @@ mod erc721 {
             &mut self,
             from: &AccountId,
             to: &AccountId,
-            id: TokenId,
+            id: u32,         // u32 - TokenId
         ) -> Result<(), Error> {
             let caller = self.env().caller();
             if !self.exists(id) {
@@ -198,7 +198,7 @@ mod erc721 {
         fn remove_token_from(
             &mut self,
             from: &AccountId,
-            id: TokenId,
+            id: u32,         // u32 - TokenId
         ) -> Result<(), Error> {
             if !self.exists(id) {
                 return Err(Error::TokenNotFound)
@@ -209,7 +209,7 @@ mod erc721 {
         }
 
         /// Adds the token `id` to the `to` AccountID.
-        fn add_token_to(&mut self, to: &AccountId, id: TokenId) -> Result<(), Error> {
+        fn add_token_to(&mut self, to: &AccountId, id: u32) -> Result<(), Error> {         // u32 - TokenId
             if self.exists(id) {
                 return Err(Error::TokenExists)
             };
@@ -254,7 +254,7 @@ mod erc721 {
         }
 
         /// Approve the passed AccountId to transfer the specified token on behalf of the message's sender.
-        fn approve_for(&mut self, to: &AccountId, id: TokenId) -> Result<(), Error> {
+        fn approve_for(&mut self, to: &AccountId, id: u32) -> Result<(), Error> {         // u32 - TokenId
             let caller = self.env().caller();
             let owner = self.owner_of(id);
             if !(owner == Some(caller)
@@ -305,7 +305,7 @@ mod erc721 {
         }
 
         /// Removes existing approval from token `id`.
-        fn clear_approval(&mut self, id: TokenId) -> Result<(), Error> {
+        fn clear_approval(&mut self, id: u32) -> Result<(), Error> {         // u32 - TokenId
             if !self.token_approvals.contains_key(&id) {
                 return Ok(())
             };
@@ -330,7 +330,7 @@ mod erc721 {
 
         /// Returns true if the AccountId `from` is the owner of token `id`
         /// or it has been approved on behalf of the token `id` owner.
-        fn approved_or_owner(&self, from: Option<AccountId>, id: TokenId) -> bool {
+        fn approved_or_owner(&self, from: Option<AccountId>, id: u32) -> bool {         // u32 - TokenId
             let owner = self.owner_of(id);
             from != Some(AccountId::from([0x0; 32]))
                 && (from == owner
@@ -342,7 +342,7 @@ mod erc721 {
         }
 
         /// Returns true if token `id` exists or false if it does not.
-        fn exists(&self, id: TokenId) -> bool {
+        fn exists(&self, id: u32) -> bool {        // u32 - TokenId
             self.token_owner.get(&id).is_some() && self.token_owner.contains_key(&id)
         }
     }
