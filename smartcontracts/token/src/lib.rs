@@ -9,12 +9,19 @@ mod erc721 {
         Decode,
         Encode,
     };
+    use ink_prelude::string::String;
+    use ink_prelude::vec::Vec;
 
     /// A token ID.
-    pub type TokenId = u32;
+    // pub type TokenId = u32;
 
     #[ink(storage)]
     struct Erc721 {
+        /// Contract version
+        version: storage::Value<u8>,
+        /// Owner, superadmin
+        owner: storage::Value<AccountId>,
+
         /// Mapping from token to owner.
         token_owner: storage::HashMap<u32, AccountId>,        // u32 - TokenId
         /// Mapping from token to approvals users.
@@ -23,6 +30,18 @@ mod erc721 {
         owned_tokens_count: storage::HashMap<AccountId, u32>,
         /// Mapping from owner to operator approvals.
         operator_approvals: storage::HashMap<(AccountId, AccountId), bool>,
+
+        /// List of total tokens
+        tokens: storage::Vec<u32>,
+
+        /// Mapping from account to metadata
+        account_metadata: storage::HashMap<AccountId, Vec<u8>>,
+        /// Supply chain nodes
+        supply_chain_data: storage::HashMap<AccountId, Vec<u8>>,
+        /// Roles data v1
+        roles_data: storage::HashMap<AccountId, Vec<u8>>,
+        /// Token metadata
+        token_metadata: storage::HashMap<u32, Vec<u8>>
     }
 
     #[derive(Encode, Decode, Debug, PartialEq, Eq, Copy, Clone)]
@@ -74,7 +93,31 @@ mod erc721 {
     impl Erc721 {
         /// Creates a new ERC721 token contract.
         #[ink(constructor)]
-        fn new(&mut self) {}
+        fn new(&mut self) {
+          self.version.set(3);
+          self.owner.set(self.env().caller());
+        }
+
+        /// ========================================================================================================================
+        /// ========================================================================================================================
+        /// ========================================================================================================================
+        /// Get version of contract
+        #[ink(message)]
+        fn version(&self) -> u8 {
+          *self.version
+        }
+
+        /// Check if owner
+        #[ink(message)]
+        fn is_contract_owner(&self, address: AccountId) -> bool {
+          self.contract_owner() == address
+        }
+
+        /// Get owner of contract
+        #[ink(message)]
+        fn contract_owner(&self) -> AccountId {
+          *self.owner
+        }
 
         /// Returns the balance of the owner.
         ///
@@ -145,6 +188,7 @@ mod erc721 {
         fn mint(&mut self, id: u32) -> Result<(), Error> {         // u32 - TokenId
             let caller = self.env().caller();
             self.add_token_to(&caller, id)?;
+            self.tokens.push(id);
             self.env().emit_event(Transfer {
                 from: Some(AccountId::from([0x0; 32])),
                 to: Some(caller),
@@ -169,6 +213,108 @@ mod erc721 {
             Ok(())
         }
 
+        /// Account metadata - Get
+        #[ink(message)]
+        fn account_metadata_of(&self, owner: AccountId) -> Vec<u8> {
+            self.account_metadata_of_or_empty(&owner)
+        }
+
+        #[ink(message)]
+        fn account_metadata_of_as_string(&self, owner: AccountId) -> String {
+            let value = self.account_metadata_of_or_empty(&owner);
+            String::from_utf8(value.to_vec()).unwrap()
+        }
+
+        /// Account metadata - Set
+        #[ink(message)]
+        fn set_account_metadata_of(&mut self, owner: AccountId, metadata: Vec<u8>) -> bool {
+            if self.is_contract_owner(self.env().caller()) || owner == self.env().caller() {
+                self.account_metadata.insert(owner, metadata);
+                return true;
+            } else {
+                return false;
+            };
+        }
+
+        /// Supply chain - Get
+        #[ink(message)]
+        fn supply_chain(&self) -> Vec<u8> {
+            self.supply_chain_data_of_or_empty(&*self.owner)
+        }
+
+        /// Supply chain - Get
+        #[ink(message)]
+        fn supply_chain_as_string(&self) -> String {
+            let value = self.supply_chain_data_of_or_empty(&*self.owner);
+            String::from_utf8(value.to_vec()).unwrap()
+        }
+
+        /// Supply chain - Set
+        #[ink(message)]
+        fn set_supply_chain(&mut self, data: Vec<u8>) -> bool {
+            self.supply_chain_data.insert(*self.owner, data);
+            true
+        }
+
+        /// Roles - Get
+        #[ink(message)]
+        fn roles(&self) -> Vec<u8> {
+            self.roles_data_of_or_empty(&*self.owner)
+        }
+
+        /// Roles - Get
+        #[ink(message)]
+        fn roles_as_string(&self) -> String {
+            let value = self.roles_data_of_or_empty(&*self.owner);
+            String::from_utf8(value.to_vec()).unwrap()
+        }
+
+        /// Roles - Set
+        #[ink(message)]
+        fn set_roles(&mut self, data: Vec<u8>) -> bool {
+            self.roles_data.insert(*self.owner, data);
+            true
+        }
+
+        /// Tokens - Get all tokens
+        #[ink(message)]
+        fn list_all_tokens(&self) -> Vec<u32> {
+            let mut clone: Vec<u32> = Vec::new();
+
+            for x in self.tokens.iter() {
+              clone.push(*x)
+            }
+
+            clone
+        }
+
+        /// Token metadata - Get
+        #[ink(message)]
+        fn token_metadata_of(&self, token: u32) -> Vec<u8> {
+            self.token_metadata_of_or_empty(&token)
+        }
+
+        #[ink(message)]
+        fn token_metadata_of_as_string(&self, token: u32) -> String {
+            let value = self.token_metadata_of_or_empty(&token);
+            String::from_utf8(value.to_vec()).unwrap()
+        }
+
+        /// Token metadata - Set
+        #[ink(message)]
+        fn set_token_metadata_of(&mut self, token: u32, metadata: Vec<u8>) -> bool {
+            if !self.exists(token) {
+                return false
+            };
+
+            self.token_metadata.insert(token, metadata);
+            true
+        }
+
+        /// ========================================================================================================================
+        /// ========================================================================================================================
+        /// ========================================================================================================================
+        /// Internal functions
         /// Transfers token `id` `from` the sender to the `to` AccountId.
         fn transfer_token_from(
             &mut self,
@@ -345,14 +491,51 @@ mod erc721 {
         fn exists(&self, id: u32) -> bool {        // u32 - TokenId
             self.token_owner.get(&id).is_some() && self.token_owner.contains_key(&id)
         }
+
+        /// Get account metadata or return empty if not initialized
+        fn account_metadata_of_or_empty(&self, owner: &AccountId) -> Vec<u8> {
+            let empty: Vec<u8> = Vec::new();
+            let vec_value = self.account_metadata.get(owner).unwrap_or(&empty);
+            vec_value.to_vec()
+        }
+
+        /// Get supply chain data or return empty if not initialized
+        fn supply_chain_data_of_or_empty(&self, owner: &AccountId) -> Vec<u8> {
+            let empty: Vec<u8> = Vec::new();
+            let vec_value = self.supply_chain_data.get(owner).unwrap_or(&empty);
+            vec_value.to_vec()
+        }
+
+        /// Get roles data or return empty if not initialized
+        fn roles_data_of_or_empty(&self, owner: &AccountId) -> Vec<u8> {
+            let empty: Vec<u8> = Vec::new();
+            let vec_value = self.roles_data.get(owner).unwrap_or(&empty);
+            vec_value.to_vec()
+        }
+
+        /// Get token meta data or return empty if not initialized
+        fn token_metadata_of_or_empty(&self, token: &u32) -> Vec<u8> {
+          let empty: Vec<u8> = Vec::new();
+          let vec_value = self.token_metadata.get(token).unwrap_or(&empty);
+          vec_value.to_vec()
+      }
     }
 
+    /// ========================================================================================================================
+    /// ========================================================================================================================
+    /// ========================================================================================================================
     /// Unit tests
     #[cfg(test)]
     mod tests {
         /// Imports all the definitions from the outer scope so we can use them here.
         use super::*;
         use ink_core::env;
+
+        #[test]
+        fn new_works() {
+          let contract = Erc721::new();
+          assert_eq!(contract.version, 3);
+        }
 
         #[test]
         fn mint_works() {
@@ -364,10 +547,14 @@ mod erc721 {
             assert_eq!(erc721.owner_of(1), None);
             // Alice does not owns tokens.
             assert_eq!(erc721.balance_of(accounts.alice), 0);
+            // Total tokens works = 0
+            assert_eq!(erc721.list_all_tokens().len(), 0);
             // Create token Id 1.
             assert_eq!(erc721.mint(1), Ok(()));
             // Alice owns 1 token.
             assert_eq!(erc721.balance_of(accounts.alice), 1);
+            // Total tokens works = 1
+            assert_eq!(erc721.list_all_tokens().len(), 1);
         }
 
         #[test]
@@ -623,6 +810,77 @@ mod erc721 {
             assert_eq!(erc721.balance_of(accounts.alice), 0);
             // Token Id 1 does not exists
             assert_eq!(erc721.owner_of(1), None);
+        }
+
+        #[test]
+        fn account_metadata_works() {
+          let accounts = env::test::default_accounts::<env::DefaultEnvTypes>()
+          .expect("Cannot get accounts");
+
+          let mut contract = Erc721::new();
+
+          // Initial value should be empty
+          assert_eq!(contract.account_metadata_of_as_string(accounts.alice), String::from(""));
+
+          // Set own value should work
+          contract.set_account_metadata_of(accounts.alice, String::from("Alice metadata").into());
+          assert_eq!(contract.account_metadata_of_as_string(accounts.alice), String::from("Alice metadata"));
+        }
+
+        #[test]
+        fn supply_chain_works() {
+          let accounts = env::test::default_accounts::<env::DefaultEnvTypes>()
+          .expect("Cannot get accounts");
+
+          let mut contract = Erc721::new();
+
+          // Initial value should be empty
+          assert_eq!(contract.supply_chain_as_string(), String::from(""));
+
+          // Set and value should work
+          contract.set_supply_chain(String::from("[\"Step1\", \"Step2\"]").into());
+          assert_eq!(contract.supply_chain_as_string(), String::from("[\"Step1\", \"Step2\"]"));
+        }
+
+        #[test]
+        fn roles_works() {
+          let accounts = env::test::default_accounts::<env::DefaultEnvTypes>()
+          .expect("Cannot get accounts");
+
+          let mut contract = Erc721::new();
+
+          // Initial value should be empty
+          assert_eq!(contract.roles_as_string(), String::from(""));
+
+          // Set and value should work
+          contract.set_roles(String::from("[\"Role1\", \"Role2\"]").into());
+          assert_eq!(contract.roles_as_string(), String::from("[\"Role1\", \"Role2\"]"));
+        }
+
+        #[test]
+        fn token_metadata_works() {
+            let accounts = env::test::default_accounts::<env::DefaultEnvTypes>()
+            .expect("Cannot get accounts");
+
+            let mut contract = Erc721::new();
+
+            // Token 1 does not exists.
+            assert_eq!(contract.owner_of(1), None);
+            // Alice does not owns tokens.
+            assert_eq!(contract.balance_of(accounts.alice), 0);
+            // Total tokens works = 0
+            assert_eq!(contract.list_all_tokens().len(), 0);
+            // Create token Id 1.
+            assert_eq!(contract.mint(1), Ok(()));
+            // Alice owns 1 token.
+            assert_eq!(contract.balance_of(accounts.alice), 1);
+
+            // Initial value should be empty
+            assert_eq!(contract.token_metadata_of_as_string(1), String::from(""));
+
+            // Set value should work
+            contract.set_token_metadata_of(1, String::from("Token metadata").into());
+            assert_eq!(contract.token_metadata_of_as_string(1), String::from("Token metadata"));
         }
     }
 }
