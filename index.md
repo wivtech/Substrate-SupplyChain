@@ -1,16 +1,14 @@
-## Welcome to the WiV Substrate Supply Chain
-
 
 ## Milestone 1
 
 ### supply chain repo
-[supply chain]: https://github.com/wivtech/Substrate-SupplyChain/tree/M1
+[supply chain][https://github.com/wivtech/Substrate-SupplyChain/tree/M1]
 
 ### suppy chain UI repo
-[suppy chain UI]: https://github.com/wivtech/Substrate-SupplyChain-UI/tree/M1
+[suppy chain UI][https://github.com/wivtech/Substrate-SupplyChain-UI/tree/M1]
 
 ### Wiki
-[Wiki]: https://github.com/wivtech/Substrate-SupplyChain/wiki
+[Wiki][https://github.com/wivtech/Substrate-SupplyChain/wiki]
 
 ### Demo
 
