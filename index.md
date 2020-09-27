@@ -1,5 +1,5 @@
 
-## Milestone 1
+## WiV - Supply Chain - Milestone 1
 
 ### supply chain repo
 [supply chain](https://github.com/wivtech/Substrate-SupplyChain/tree/M1)
