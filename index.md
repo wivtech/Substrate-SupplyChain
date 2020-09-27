@@ -13,7 +13,7 @@
 ### Demo
 
 <figure class="video_container">
-  <video controls="true" allowfullscreen="true" poster="path/to/poster_image.png">
+  <video controls="true" width="640" height="480" allowfullscreen="true" poster="path/to/poster_image.png">
     <source src="wiv-substrate-M1.mp4" type="video/mp4">
   </video>
 </figure>
