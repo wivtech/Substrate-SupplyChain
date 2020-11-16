@@ -1,13 +1,14 @@
 use sp_core::{Pair, Public, sr25519};
-use node_template_runtime::{
+use canvas_runtime::{
 	AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig,
 	SudoConfig, SystemConfig, WASM_BINARY, Signature,
-	ContractsConfig, ContractsSchedule
+	ContractsConfig,
 };
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_finality_grandpa::AuthorityId as GrandpaId;
 use sp_runtime::traits::{Verify, IdentifyAccount};
 use sc_service::ChainType;
+use hex_literal::hex;
 
 // Note this is the URL for the telemetry server
 //const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -39,12 +40,34 @@ pub fn authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId) {
 	)
 }
 
-pub fn development_config() -> ChainSpec {
-	ChainSpec::from_genesis(
+
+pub fn testnet_authorities() -> Vec<(AuraId, GrandpaId)> {
+	use sp_core::crypto::UncheckedInto;
+	vec![
+		(
+			hex!("74608217b1709e1d3a4fe65b132db5c3f321e625026080833189661aa5e20712").unchecked_into(),
+			hex!("a5abc21ac95ae63dd6e61e5bec263ab46d1efe16d3dcc085d0de297318cb662d").unchecked_into(),
+		),
+		(
+			hex!("44f3876fe4f653533c65e79461a476b8d6a107fb71b6ec0f3485bb53b4e7b842").unchecked_into(),
+			hex!("281be34a71b661b257153e1145522fd0820cfff6a3601b40e7f85d3bc155240d").unchecked_into(),
+		),
+	]
+}
+
+pub fn testnet_root() -> AccountId {
+	hex!("baa78c7154c7f82d6d377177e20bcab65d327eca0086513f9964f5a0f6bdad56").into()
+}
+
+pub fn development_config() -> Result<ChainSpec, String> {
+	let wasm_binary = WASM_BINARY.ok_or("Development wasm binary not available".to_string())?;
+
+	Ok(ChainSpec::from_genesis(
 		"Development",
 		"dev",
 		ChainType::Development,
-		|| testnet_genesis(
+		move || testnet_genesis(
+			wasm_binary,
 			vec![
 				authority_keys_from_seed("Alice"),
 			],
@@ -62,70 +85,69 @@ pub fn development_config() -> ChainSpec {
 		None,
 		None,
 		None,
-	)
+	))
 }
 
-pub fn local_testnet_config() -> ChainSpec {
-	ChainSpec::from_genesis(
-		"Local Testnet",
-		"local_testnet",
-		ChainType::Local,
-		|| testnet_genesis(
-			vec![
-				authority_keys_from_seed("Alice"),
-				authority_keys_from_seed("Bob"),
-			],
-			get_account_id_from_seed::<sr25519::Public>("Alice"),
-			vec![
-				get_account_id_from_seed::<sr25519::Public>("Alice"),
-				get_account_id_from_seed::<sr25519::Public>("Bob"),
-				get_account_id_from_seed::<sr25519::Public>("Charlie"),
-				get_account_id_from_seed::<sr25519::Public>("Dave"),
-				get_account_id_from_seed::<sr25519::Public>("Eve"),
-				get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-				get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-				get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-				get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
-				get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
-				get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
-				get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
-			],
+pub fn testnet_config() -> Result<ChainSpec, String> {
+	let wasm_binary = WASM_BINARY.ok_or("Development wasm binary not available".to_string())?;
+
+	Ok(ChainSpec::from_genesis(
+		"Canvas Testnet 1",
+		"canvas_testnet1",
+		ChainType::Live,
+		move || testnet_genesis(
+			wasm_binary,
+			testnet_authorities(),
+			testnet_root(),
+			vec![testnet_root()],
 			true,
 		),
-		vec![],
+		vec![
+			"/ip4/35.233.19.96/tcp/30333/p2p/QmNvYhAZSBtahCqCXznYiq8e24Yes1GraPFYCc3DyA5f3z".parse()
+				.expect("MultiaddrWithPeerId"),
+			"/ip4/35.205.110.21/tcp/30333/p2p/QmPKFc9B2oeQFc5oxbNsRENwSYibzzafKmcHs9wBZCJH4U".parse()
+				.expect("MultiaddrWithPeerId"),
+		],
 		None,
+		Some("prc"),
 		None,
-		None,
-		None,
-	)
+		None
+	))
 }
 
-fn testnet_genesis(initial_authorities: Vec<(AuraId, GrandpaId)>,
+fn testnet_genesis(
+	wasm_binary: &[u8],
+	initial_authorities: Vec<(AuraId, GrandpaId)>,
 	root_key: AccountId,
 	endowed_accounts: Vec<AccountId>,
-	enable_println: bool) -> GenesisConfig {
+	enable_println: bool
+) -> GenesisConfig {
+
 	GenesisConfig {
-		system: Some(SystemConfig {
-			code: WASM_BINARY.to_vec(),
+		frame_system: Some(SystemConfig {
+			// Add Wasm runtime to storage.
+			code: wasm_binary.to_vec(),
 			changes_trie_config: Default::default(),
 		}),
-		balances: Some(BalancesConfig {
-			balances: endowed_accounts.iter().cloned().map(|k|(k, 1 << 100)).collect(),
+		pallet_balances: Some(BalancesConfig {
+			// Configure endowed accounts with initial balance of 1 << 60.
+			balances: endowed_accounts.iter().cloned().map(|k|(k, 1 << 60)).collect(),
 		}),
-		aura: Some(AuraConfig {
+		pallet_aura: Some(AuraConfig {
 			authorities: initial_authorities.iter().map(|x| (x.0.clone())).collect(),
 		}),
-		grandpa: Some(GrandpaConfig {
+		pallet_grandpa: Some(GrandpaConfig {
 			authorities: initial_authorities.iter().map(|x| (x.1.clone(), 1)).collect(),
 		}),
-		sudo: Some(SudoConfig {
+		pallet_sudo: Some(SudoConfig {
+			// Assign network admin rights.
 			key: root_key,
 		}),
-		contracts: Some(ContractsConfig {
-            current_schedule: ContractsSchedule {
-                    enable_println,
-                    ..Default::default()
-            },
-        }),
+		pallet_contracts: Some(ContractsConfig {
+			current_schedule: pallet_contracts::Schedule {
+					enable_println,
+					..Default::default()
+			},
+		}),
 	}
 }

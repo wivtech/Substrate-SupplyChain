@@ -15,48 +15,49 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::chain_spec;
-use crate::cli::Cli;
-use crate::service;
-use sc_cli::SubstrateCli;
+use crate::{chain_spec, service};
+use crate::cli::{Cli, Subcommand};
+use sc_cli::{SubstrateCli, RuntimeVersion, Role, ChainSpec};
+use sc_service::PartialComponents;
 
 impl SubstrateCli for Cli {
-	fn impl_name() -> &'static str {
-		"Substrate Node"
+	fn impl_name() -> String {
+		"Canvas Node".into()
 	}
 
-	fn impl_version() -> &'static str {
-		env!("SUBSTRATE_CLI_IMPL_VERSION")
+	fn impl_version() -> String {
+		env!("SUBSTRATE_CLI_IMPL_VERSION").into()
 	}
 
-	fn description() -> &'static str {
-		env!("CARGO_PKG_DESCRIPTION")
+	fn description() -> String {
+		env!("CARGO_PKG_DESCRIPTION").into()
 	}
 
-	fn author() -> &'static str {
-		env!("CARGO_PKG_AUTHORS")
+	fn author() -> String {
+		env!("CARGO_PKG_AUTHORS").into()
 	}
 
-	fn support_url() -> &'static str {
-		"support.anonymous.an"
+	fn support_url() -> String {
+		"https://github.com/paritytech/canvas-node/issues/new".into()
 	}
 
 	fn copyright_start_year() -> i32 {
-		2017
+		2020
 	}
 
-	fn executable_name() -> &'static str {
-		env!("CARGO_PKG_NAME")
-	}
 
 	fn load_spec(&self, id: &str) -> Result<Box<dyn sc_service::ChainSpec>, String> {
 		Ok(match id {
-			"dev" => Box::new(chain_spec::development_config()),
-			"" | "local" => Box::new(chain_spec::local_testnet_config()),
+			"dev" => Box::new(chain_spec::development_config()?),
+			"" => Box::new(chain_spec::testnet_config()?), // default to running on testnet
 			path => Box::new(chain_spec::ChainSpec::from_json_file(
 				std::path::PathBuf::from(path),
 			)?),
 		})
+	}
+
+	fn native_runtime_version(_: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
+		&canvas_runtime::VERSION
 	}
 }
 
@@ -65,17 +66,60 @@ pub fn run() -> sc_cli::Result<()> {
 	let cli = Cli::from_args();
 
 	match &cli.subcommand {
-		Some(subcommand) => {
-			let runner = cli.create_runner(subcommand)?;
-			runner.run_subcommand(subcommand, |config| Ok(new_full_start!(config).0))
-		}
+		Some(Subcommand::BuildSpec(cmd)) => {
+			let runner = cli.create_runner(cmd)?;
+			runner.sync_run(|config| cmd.run(config.chain_spec, config.network))
+		},
+		Some(Subcommand::CheckBlock(cmd)) => {
+			let runner = cli.create_runner(cmd)?;
+			runner.async_run(|config| {
+				let PartialComponents { client, task_manager, import_queue, ..}
+					= service::new_partial(&config)?;
+				Ok((cmd.run(client, import_queue), task_manager))
+			})
+		},
+		Some(Subcommand::ExportBlocks(cmd)) => {
+			let runner = cli.create_runner(cmd)?;
+			runner.async_run(|config| {
+				let PartialComponents { client, task_manager, ..}
+					= service::new_partial(&config)?;
+				Ok((cmd.run(client, config.database), task_manager))
+			})
+		},
+		Some(Subcommand::ExportState(cmd)) => {
+			let runner = cli.create_runner(cmd)?;
+			runner.async_run(|config| {
+				let PartialComponents { client, task_manager, ..}
+					= service::new_partial(&config)?;
+				Ok((cmd.run(client, config.chain_spec), task_manager))
+			})
+		},
+		Some(Subcommand::ImportBlocks(cmd)) => {
+			let runner = cli.create_runner(cmd)?;
+			runner.async_run(|config| {
+				let PartialComponents { client, task_manager, import_queue, ..}
+					= service::new_partial(&config)?;
+				Ok((cmd.run(client, import_queue), task_manager))
+			})
+		},
+		Some(Subcommand::PurgeChain(cmd)) => {
+			let runner = cli.create_runner(cmd)?;
+			runner.sync_run(|config| cmd.run(config.database))
+		},
+		Some(Subcommand::Revert(cmd)) => {
+			let runner = cli.create_runner(cmd)?;
+			runner.async_run(|config| {
+				let PartialComponents { client, task_manager, backend, ..}
+					= service::new_partial(&config)?;
+				Ok((cmd.run(client, backend), task_manager))
+			})
+		},
 		None => {
 			let runner = cli.create_runner(&cli.run)?;
-			runner.run_node(
-				service::new_light,
-				service::new_full,
-				node_template_runtime::VERSION
-			)
+			runner.run_node_until_exit(|config| match config.role {
+				Role::Light => service::new_light(config),
+				_ => service::new_full(config),
+			})
 		}
 	}
 }
