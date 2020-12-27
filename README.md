@@ -7,16 +7,17 @@ The WiV Supply Chain Pallet allows users to securely collect and store informati
 
 ## Getting Started
 
-In brief, you should install Rust Language a few required packages and it will build with 2 simple commands.
-You must have knowledge about command line usage.
+In brief, you should install Rust Language,a few required packages and it should build by 2 simple commands.
+
+We assume that you have knowledge about command line usage in your operating system. 
 The node should work in any operating system compatible with the [Rust](https://www.rust-lang.org/) programming language.
 
 ### Rust Setup
 
 Setup instructions for working with the [Rust](https://www.rust-lang.org/) programming language can
-be found at the
-[Substrate Developer Hub](https://substrate.dev/docs/en/knowledgebase/getting-started). Follow those
-steps to install [`rustup`](https://rustup.rs/) and configure the Rust toolchain to default to the
+be found at the [Substrate Developer Hub](https://substrate.dev/docs/en/knowledgebase/getting-started). 
+
+Follow those steps to install [`rustup`](https://rustup.rs/) and configure the Rust toolchain to default to the
 latest stable version.
 
 ### Makefile
@@ -27,7 +28,7 @@ targets:
 
 1. `make init` - Run the [init script](scripts/init.sh) to configure the Rust toolchain for
    [WebAssembly compilation](https://substrate.dev/docs/en/knowledgebase/getting-started/#webassembly-compilation).
-1. `make run` - Build and launch this project in development mode.
+2. `make run` - Build and launch this project in development mode.
 
 The init script and Makefile both specify the version of the
 [Rust nightly compiler](https://substrate.dev/docs/en/knowledgebase/getting-started/#rust-nightly-toolchain)
