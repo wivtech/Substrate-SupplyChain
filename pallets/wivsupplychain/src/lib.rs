@@ -27,6 +27,12 @@ decl_event!(
 		/// New asset has been stored (base64 encoding + json)
 		/// [Asset, AccountId]
 		NewAssetStored(Vec<u8>, AccountId),
+		/// Asset has been transferred (base64 encoding + json)
+		/// [Asset, AccountId]
+		AssetTransferred(Vec<u8>, AccountId),
+		/// Asset has been removed (base64 encoding + json)
+		/// [Asset, AccountId]
+		AssetRemoved(Vec<u8>, AccountId),
 	}
 );
 
@@ -70,10 +76,11 @@ decl_module! {
 			ensure!(asset.len() >= 16, Error::<T>::TooShort); //check minimum length
 			ensure!(asset.len() <= 8192, Error::<T>::TooLong);  // check maximum length
 			// Update storage.
-			let assetstorage=asset.clone();
-			<Asset<T>>::insert(&sender, assetstorage);
+			let assettransfer=asset.clone();
+			//todo: add control on previous asset/property
+			<Asset<T>>::insert(&sender, assettransfer);
 			// Emit an event
-			Self::deposit_event(RawEvent::NewAssetStored(asset, sender));
+			Self::deposit_event(RawEvent::AssetTransferred(asset, sender));
 			// Return a successful DispatchResult
 			Ok(())
 		}
@@ -84,11 +91,12 @@ decl_module! {
 			let sender = ensure_signed(origin)?;
 			ensure!(asset.len() >= 16, Error::<T>::TooShort); //check minimum length
 			ensure!(asset.len() <= 8192, Error::<T>::TooLong);  // check maximum length
-			// Update storage.
-			let assetstorage=asset.clone();
-			<Asset<T>>::insert(&sender, assetstorage);
+			// Transfer storage
+			let assetremove=asset.clone();
+			//todo: add control on previous asset/property
+			<Asset<T>>::insert(&sender, assetremove);
 			// Emit an event
-			Self::deposit_event(RawEvent::NewAssetStored(asset, sender));
+			Self::deposit_event(RawEvent::AssetRemoved(asset, sender));
 			// Return a successful DispatchResult
 			Ok(())
 		}
