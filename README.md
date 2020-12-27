@@ -1,6 +1,7 @@
 # Substrate Node - Wiv Supply Chain
 
-A Substrate node including Wiv Supply Chain Pallet
+A Substrate node including Wiv Supply Chain Pallet.
+
 The WiV Supply Chain Pallet allows users to securely collect and store information about each unique asset’s provenance and transaction history, whilst holding and insuring the unique asset in a professionally managed storage facility.
 
 
